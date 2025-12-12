@@ -2,34 +2,64 @@
 <html>
 
 <head>
+    <meta charset="utf-8" />
     <title>Calendar Preview</title>
-    <link rel="stylesheet" href="/static/style.css">
+
+    <!-- FullCalendar -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            max-width: 1100px;
+            margin: 40px auto;
+        }
+
+        #calendar {
+            margin-top: 30px;
+        }
+
+        .buttons {
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 10px 16px;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+    </style>
 </head>
 
 <body>
-    <h1>Preview</h1>
+    <h1>Calendar Preview</h1>
+    <p>This is a visual preview of how your schedule will look.</p>
 
-    <table>
-        <tr>
-            <th>Course</th>
-            <th>Days</th>
-            <th>Time</th>
-            <th>Location</th>
-        </tr>
+    <div class="buttons">
+        <a href="/download?path={{ ics_path }}">
+            <button>Download .ics</button>
+        </a>
 
-        {% for c in lectures %}
-        <tr>
-            <td>{{ c.subject }} {{ c.number }}</td>
-            <td>{{ c.days }}</td>
-            <td>{{ c.time }}</td>
-            <td>{{ c.building }} {{ c.room }}</td>
-        </tr>
-        {% endfor %}
-    </table>
 
-    <a href="/download?path={{ ics_path }}">
-        <button>Download .ics</button>
-    </a>
+    </div>
+
+    <div id="calendar"></div>
+
+    <script>
+        const calendarEl = document.getElementById("calendar");
+
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: "timeGridWeek",
+            height: 700,
+            nowIndicator: true,
+            slotMinTime: "07:00:00",
+            slotMaxTime: "22:00:00",
+            events: {{ events | tojson }},
+    });
+
+        calendar.render();
+    </script>
 </body>
 
 </html>
