@@ -1,4 +1,5 @@
+flask
+gunicorn
 pytesseract
 pdf2image
-Pillow
-flask
+pillow
