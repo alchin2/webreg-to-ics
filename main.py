@@ -1,7 +1,7 @@
-from webreg_to_ics.pdf_to_image import pdf_to_image
-from webreg_to_ics.ocr import image_to_text
-from webreg_to_ics.parser import parse_lectures
-from webreg_to_ics.calendar import generate_ics
+from webreg.pdf_to_image import pdf_to_image
+from webreg.ocr import image_to_text
+from webreg.parser import parse_lectures
+from webreg.calendar import generate_ics
 
 
 def main():
