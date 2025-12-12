@@ -12,7 +12,6 @@ UCSD WebReg doesn't provide native calendar export. This tool bridges that gap b
 - **Weekly Lectures**: Automatically generates recurring lecture events
 - **Holiday-Aware**: Skips UCSD holidays (MLK Day, Presidents' Day, etc.)
 - **Exams Included**: Adds midterms and finals as one-off events
-- **Clean Output**: Professional event titles like `MATH 171A Lecture`
 - **Universal Compatibility**: Works with Google Calendar, Apple Calendar, and Outlook
 
 ## Installation
