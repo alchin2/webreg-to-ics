@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Calendar Preview</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+    <h1>Preview</h1>
+
+    <table>
+        <tr>
+            <th>Course</th>
+            <th>Days</th>
+            <th>Time</th>
+            <th>Location</th>
+        </tr>
+
+        {% for c in lectures %}
+        <tr>
+            <td>{{ c.subject }} {{ c.number }}</td>
+            <td>{{ c.days }}</td>
+            <td>{{ c.time }}</td>
+            <td>{{ c.building }} {{ c.room }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <a href="/download?path={{ ics_path }}">
+        <button>Download .ics</button>
+    </a>
+</body>
+
+</html>
