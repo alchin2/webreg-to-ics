@@ -1,121 +1,107 @@
-import re
+import pandas as pd
 from datetime import datetime, timedelta, date
-from typing import List, Dict
+import re
 
-
-HOLIDAYS = {
-    date(2026, 1, 19),  # MLK Day
-    date(2026, 2, 16),  # Presidents’ Day
-}
-
+HOLIDAYS = {date(2026, 1, 19), date(2026, 2, 16)}  # MLK + Presidents’ Day
 QUARTER_START = date(2026, 1, 5)
 QUARTER_END = date(2026, 3, 13)
+DAY_MAP = {"M": 0, "Tu": 1, "W": 2, "Th": 3, "F": 4}
 
-
-DAY_MAP = {
-    "M": 0,
-    "Tu": 1,
-    "W": 2,
-    "Th": 3,
-    "F": 4,
-}
-
-
-EXAM_RE = re.compile(
-    r"(Midterm|Final\s+Exam).+?(\d{2}/\d{2}/\d{4})\s+(\d+:\d+[ap]-\d+:\d+[ap])\s+([A-Z0-9]+)\s+([A-Z0-9]+)"
-)
-
-
-def parse_time(t: str) -> datetime:
+def parse_time(t):
+    t = str(t).strip().lower()
+    if not t or t == "tba":
+        raise ValueError
     t = t[:-1] + ("AM" if t.endswith("a") else "PM")
     return datetime.strptime(t, "%I:%M%p")
 
-
 def parse_time_range(time_str):
-    start, end = time_str.split("-")
+    start, end = map(str.strip, str(time_str).split("-"))
     return parse_time(start), parse_time(end)
 
-
-def weekday_indices(days: str) -> List[int]:
+def weekday_indices(days):
+    days = str(days).strip()
     i, out = 0, []
     while i < len(days):
         if days[i:i+2] in DAY_MAP:
             out.append(DAY_MAP[days[i:i+2]])
             i += 2
-        else:
+        elif days[i] in DAY_MAP:
             out.append(DAY_MAP[days[i]])
+            i += 1
+        else:
             i += 1
     return out
 
+def csv_to_ics(csv_path: str) -> str:
+    df = pd.read_csv(csv_path)
+    df.columns = [c.replace("\n", " ").strip() for c in df.columns]
 
-def generate_ics(lectures: List[Dict], raw_text: str) -> str:
-    """
-    Generate ICS calendar text from lecture data and raw OCR text.
-    """
     events = []
 
-    def event(block: str) -> None:
-        events.append(block)
-
-    for row in lectures:
-        course = f"{row['subject']} {row['number']}"
-        title = f"{course} Lecture"
-        location = f"{row['building']} {row['room']}"
-
-        start_t, end_t = parse_time_range(row["time"])
-
-        for wd in weekday_indices(row["days"]):
-            first = QUARTER_START + timedelta((wd - QUARTER_START.weekday()) % 7)
-            start_dt = datetime.combine(first, start_t.time())
-            end_dt = datetime.combine(first, end_t.time())
-
-            exdates = [
-                datetime.combine(d, start_t.time())
-                for d in HOLIDAYS
-                if d.weekday() == wd
-            ]
-
-            ex = ""
-            if exdates:
-                ex = "EXDATE:" + ",".join(
-                    d.strftime("%Y%m%dT%H%M%S") for d in exdates
-                ) + "\n"
-
-            event(f"""BEGIN:VEVENT
-UID:{course}-{wd}@webreg
+    def add_event(uid, start, end, summary, location, exdates=""):
+        events.append(
+f"""BEGIN:VEVENT
+UID:{uid}@webreg
 DTSTAMP:{datetime.now().strftime('%Y%m%dT%H%M%S')}
-DTSTART:{start_dt.strftime('%Y%m%dT%H%M%S')}
-DTEND:{end_dt.strftime('%Y%m%dT%H%M%S')}
-RRULE:FREQ=WEEKLY;UNTIL={QUARTER_END.strftime('%Y%m%dT235959')}
-{ex}SUMMARY:{title}
+DTSTART:{start}
+DTEND:{end}
+{exdates}SUMMARY:{summary}
 LOCATION:{location}
 END:VEVENT
-""")
+"""
+        )
 
     current_course = None
-    for line in raw_text.splitlines():
-        if re.match(r"^[A-Z]{2,4}\s+\d+", line):
-            parts = line.split()
-            current_course = f"{parts[0]} {parts[1]}"
+    for _, row in df.iterrows():
+        subject = str(row.get("Subject Course", "")).strip()
+        course_type = str(row.get("Type", "")).strip()
+        days = str(row.get("Days", "")).strip()
+        time = str(row.get("Time", "")).strip()
+        bldg = str(row.get("BLDG", "")).strip()
+        room = str(row.get("Room", "")).strip()
 
-        m = EXAM_RE.search(line)
-        if m and current_course:
-            kind, date_str, time_str, bldg, room = m.groups()
-            start_t, end_t = parse_time_range(time_str)
-            exam_date = datetime.strptime(date_str, "%m/%d/%Y").date()
+        if subject:
+            current_course = subject
 
-            event(f"""BEGIN:VEVENT
-UID:{current_course}-{kind}@webreg
-DTSTAMP:{datetime.now().strftime('%Y%m%dT%H%M%S')}
-DTSTART:{datetime.combine(exam_date, start_t.time()).strftime('%Y%m%dT%H%M%S')}
-DTEND:{datetime.combine(exam_date, end_t.time()).strftime('%Y%m%dT%H%M%S')}
-SUMMARY:{current_course} {kind.replace(" Exam","")}
-LOCATION:{bldg} {room}
-END:VEVENT
-""")
+        if course_type in ["LE", "DI", "LA"] and days and time:
+            try:
+                start_t, end_t = parse_time_range(time)
+            except Exception:
+                continue
 
-    return (
-        "BEGIN:VCALENDAR\nVERSION:2.0\nCALSCALE:GREGORIAN\n"
-        + "".join(events)
-        + "END:VCALENDAR\n"
-    )
+            for wd in weekday_indices(days):
+                first = QUARTER_START + timedelta((wd - QUARTER_START.weekday()) % 7)
+                start_dt = datetime.combine(first, start_t.time())
+                end_dt = datetime.combine(first, end_t.time())
+                exdates = [
+                    d.strftime("%Y%m%dT%H%M%S")
+                    for d in HOLIDAYS
+                    if d.weekday() == wd
+                ]
+                ex = f"EXDATE:{','.join(exdates)}\n" if exdates else ""
+                add_event(
+                    f"{current_course}-{wd}",
+                    start_dt.strftime("%Y%m%dT%H%M%S"),
+                    end_dt.strftime("%Y%m%dT%H%M%S"),
+                    f"{current_course} {course_type}",
+                    f"{bldg} {room}",
+                    ex
+                )
+
+        elif course_type in ["FI", "MI"] and " " in days:
+            # Final or Midterm — one-off event
+            try:
+                day_str, date_str = days.split(" ", 1)
+                exam_date = datetime.strptime(date_str.strip(), "%m/%d/%Y").date()
+                start_t, end_t = parse_time_range(time)
+                add_event(
+                    f"{current_course}-{course_type}-{exam_date}",
+                    datetime.combine(exam_date, start_t.time()).strftime("%Y%m%dT%H%M%S"),
+                    datetime.combine(exam_date, end_t.time()).strftime("%Y%m%dT%H%M%S"),
+                    f"{current_course} {'Final' if course_type == 'FI' else 'Midterm'}",
+                    f"{bldg} {room}"
+                )
+            except Exception:
+                continue
+
+    return "BEGIN:VCALENDAR\nVERSION:2.0\nCALSCALE:GREGORIAN\n" + "".join(events) + "END:VCALENDAR\n"

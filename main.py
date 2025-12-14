@@ -1,22 +1,21 @@
-from webreg.pdf_to_image import pdf_to_image
-from webreg.ocr import image_to_text
-from webreg.parser import parse_lectures
-from webreg.calendar import generate_ics
+from webreg.pdf_extract import extract_table
+from webreg.calendar import csv_to_ics
 
 
 def main():
     pdf_path = input("Enter WebReg PDF path: ").strip()
 
-    image = pdf_to_image(pdf_path)
-    text = image_to_text(image)
-    lectures = parse_lectures(text)
+    # Step 1: extract the course table from the PDF
+    csv_path = extract_table(pdf_path)
 
-    ics = generate_ics(lectures, text)
+    # Step 2: generate the ICS calendar from the CSV
+    ics_data = csv_to_ics(csv_path)
 
+    # Step 3: save the .ics file
     with open("schedule.ics", "w") as f:
-        f.write(ics)
+        f.write(ics_data)
 
-    print("schedule.ics generated successfully")
+    print("✅ schedule.ics generated successfully!")
 
 
 if __name__ == "__main__":
