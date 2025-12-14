@@ -63,7 +63,7 @@ Import repo to Vercel and deploy.
 ---
 
 ## Notes
-
+- Currently tuned to Winter 2026 
 - PDF must follow standard WebReg format
 - Preview is visualization only; `.ics` file is the source of truth
 
