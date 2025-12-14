@@ -151,104 +151,114 @@ def convert():
 # Vercel handler
 # -------------------------------------------------
 
-def handler(request):
+from http.server import BaseHTTPRequestHandler
+from io import BytesIO
+import urllib.parse
+
+
+class handler(BaseHTTPRequestHandler):
     """
     Vercel serverless function handler.
     
-    This function bridges Vercel's serverless function format with Flask's WSGI interface.
-    It converts the Vercel request object to WSGI environ format, calls the Flask app,
-    and converts the WSGI response back to Vercel's expected format.
+    This class bridges Vercel's BaseHTTPRequestHandler interface with Flask's WSGI interface.
+    It converts the HTTP request to WSGI environ format, calls the Flask app,
+    and writes the response back through the handler's response methods.
     """
-    from io import BytesIO
-    import urllib.parse
     
-    try:
-        # Build WSGI environ from Vercel request
-        path_parts = request.path.split('?', 1)
-        path_info = path_parts[0]
-        query_string = path_parts[1] if len(path_parts) > 1 else ''
-        
-        # Parse query string
-        if query_string:
-            query_string = urllib.parse.unquote(query_string)
-        
-        # Get request body
-        body = request.body
-        if isinstance(body, str):
-            body = body.encode('utf-8')
-        elif body is None:
-            body = b''
-        
-        # Build WSGI environ dictionary
-        environ = {
-            'REQUEST_METHOD': request.method,
-            'SCRIPT_NAME': '',
-            'PATH_INFO': path_info,
-            'QUERY_STRING': query_string,
-            'CONTENT_TYPE': request.headers.get('content-type', ''),
-            'CONTENT_LENGTH': str(len(body)),
-            'SERVER_NAME': request.headers.get('host', 'localhost').split(':')[0],
-            'SERVER_PORT': request.headers.get('host', 'localhost:80').split(':')[-1] if ':' in request.headers.get('host', '') else '80',
-            'wsgi.version': (1, 0),
-            'wsgi.url_scheme': 'https',
-            'wsgi.input': BytesIO(body),
-            'wsgi.errors': None,
-            'wsgi.multithread': False,
-            'wsgi.multiprocess': True,
-            'wsgi.run_once': False,
-        }
-        
-        # Add HTTP headers to environ (WSGI format: HTTP_* prefix)
-        for key, value in request.headers.items():
-            key = key.upper().replace('-', '_')
-            if key not in ('CONTENT_TYPE', 'CONTENT_LENGTH'):
-                environ[f'HTTP_{key}'] = value
-        
-        # Capture response from Flask
-        response_parts = {'status': None, 'headers': [], 'body': []}
-        
-        def start_response(status, response_headers):
-            """WSGI start_response callback"""
-            response_parts['status'] = status
-            response_parts['headers'] = response_headers
-        
-        # Call Flask app (WSGI application)
-        response_body = app(environ, start_response)
-        
-        # Collect response body chunks
-        for chunk in response_body:
-            response_parts['body'].append(chunk)
-        
-        # Build response dict for Vercel
-        status_code = int(response_parts['status'].split()[0])
-        headers = {k: v for k, v in response_parts['headers']}
-        body_content = b''.join(response_parts['body'])
-        
-        # Decode body if it's bytes
-        if isinstance(body_content, bytes):
-            # Try to decode as UTF-8, fallback to base64 for binary content
-            try:
-                body_str = body_content.decode('utf-8')
-            except UnicodeDecodeError:
-                import base64
-                body_str = base64.b64encode(body_content).decode('utf-8')
-                headers['Content-Encoding'] = 'base64'
-        else:
-            body_str = body_content
-        
-        return {
-            'statusCode': status_code,
-            'headers': headers,
-            'body': body_str
-        }
-    except Exception as e:
-        # Error handling for handler itself
-        import json
-        return {
-            'statusCode': 500,
-            'headers': {'Content-Type': 'application/json'},
-            'body': json.dumps({'ok': False, 'error': f"Handler error: {str(e)}"})
-        }
+    def do_GET(self):
+        self._handle_request()
+    
+    def do_POST(self):
+        self._handle_request()
+    
+    def do_PUT(self):
+        self._handle_request()
+    
+    def do_DELETE(self):
+        self._handle_request()
+    
+    def do_PATCH(self):
+        self._handle_request()
+    
+    def do_OPTIONS(self):
+        self._handle_request()
+    
+    def _handle_request(self):
+        """Internal method to handle all HTTP methods by converting to WSGI and calling Flask"""
+        try:
+            # Parse path and query string
+            path_parts = self.path.split('?', 1)
+            path_info = path_parts[0]
+            query_string = path_parts[1] if len(path_parts) > 1 else ''
+            
+            # Get request body
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length) if content_length > 0 else b''
+            
+            # Build WSGI environ dictionary
+            environ = {
+                'REQUEST_METHOD': self.command,
+                'SCRIPT_NAME': '',
+                'PATH_INFO': path_info,
+                'QUERY_STRING': query_string,
+                'CONTENT_TYPE': self.headers.get('Content-Type', ''),
+                'CONTENT_LENGTH': str(len(body)),
+                'SERVER_NAME': self.server.server_name if hasattr(self.server, 'server_name') else 'localhost',
+                'SERVER_PORT': str(self.server.server_port) if hasattr(self.server, 'server_port') else '80',
+                'wsgi.version': (1, 0),
+                'wsgi.url_scheme': 'https',
+                'wsgi.input': BytesIO(body),
+                'wsgi.errors': BytesIO(),
+                'wsgi.multithread': False,
+                'wsgi.multiprocess': True,
+                'wsgi.run_once': False,
+            }
+            
+            # Add HTTP headers to environ (WSGI format: HTTP_* prefix)
+            for key, value in self.headers.items():
+                key = key.upper().replace('-', '_')
+                if key not in ('CONTENT_TYPE', 'CONTENT_LENGTH'):
+                    environ[f'HTTP_{key}'] = value
+            
+            # Capture response from Flask
+            response_parts = {'status': None, 'headers': [], 'body': []}
+            
+            def start_response(status, response_headers):
+                """WSGI start_response callback"""
+                response_parts['status'] = status
+                response_parts['headers'] = response_headers
+            
+            # Call Flask app (WSGI application)
+            response_body = app(environ, start_response)
+            
+            # Collect response body chunks
+            for chunk in response_body:
+                if chunk:
+                    response_parts['body'].append(chunk)
+            
+            # Parse status code
+            status_code = int(response_parts['status'].split()[0])
+            
+            # Send response
+            self.send_response(status_code)
+            
+            # Send headers
+            for header_name, header_value in response_parts['headers']:
+                self.send_header(header_name, header_value)
+            self.end_headers()
+            
+            # Send body
+            body_content = b''.join(response_parts['body'])
+            self.wfile.write(body_content)
+            
+        except Exception as e:
+            # Error handling
+            self.send_response(500)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            import json
+            error_response = json.dumps({'ok': False, 'error': f"Handler error: {str(e)}"})
+            self.wfile.write(error_response.encode('utf-8'))
 
 # -------------------------------------------------
 # Local dev entrypoint
