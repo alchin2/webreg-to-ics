@@ -1,18 +1,150 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
+    <meta charset="UTF-8" />
     <title>WebReg PDF → Calendar</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- FullCalendar -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            max-width: 1100px;
+            margin: 40px auto;
+            padding: 0 16px;
+        }
+
+        .sub {
+            color: #555;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 10px 16px;
+            cursor: pointer;
+        }
+
+        #calendar {
+            margin-top: 24px;
+        }
+
+        .status {
+            margin-top: 12px;
+            min-height: 20px;
+        }
+
+        .status-info {
+            color: #555;
+        }
+
+        .status-ok {
+            color: #0a7;
+        }
+
+        .status-error {
+            color: #c00;
+        }
+    </style>
 </head>
 
 <body>
     <h1>WebReg to Calendar</h1>
+    <p class="sub">
+        Upload your WebReg PDF to preview your schedule (first week of January).
+    </p>
 
-    <form method="POST" enctype="multipart/form-data">
-        <input type="file" name="pdf" accept="application/pdf" required>
-        <button type="submit">Generate Calendar</button>
+    <form id="uploadForm">
+        <input type="file" id="pdfInput" accept="application/pdf" required />
+        <button type="submit">Generate</button>
     </form>
+
+    <div id="status" class="status"></div>
+
+    <button id="downloadBtn" disabled>Download schedule.ics</button>
+
+    <div id="calendar"></div>
+
+    <script>
+        const form = document.getElementById("uploadForm");
+        const statusEl = document.getElementById("status");
+        const downloadBtn = document.getElementById("downloadBtn");
+
+        let calendar = null;
+        let lastIcsText = null;
+
+        function setStatus(msg, kind = "") {
+            statusEl.textContent = msg;
+            statusEl.className = "status " + (kind ? `status-${kind}` : "");
+        }
+
+        function initCalendar(events) {
+            if (calendar) calendar.destroy();
+
+            calendar = new FullCalendar.Calendar(
+                document.getElementById("calendar"),
+                {
+                    initialView: "timeGridWeek",
+                    initialDate: "2026-01-05",
+                    height: 700,
+                    nowIndicator: true,
+                    slotMinTime: "07:00:00",
+                    slotMaxTime: "22:00:00",
+                    weekends: false,
+                    events: events,
+                }
+            );
+
+            calendar.render();
+        }
+
+        function downloadIcs(text) {
+            const blob = new Blob([text], { type: "text/calendar" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "schedule.ics";
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            setStatus("Generating preview…", "info");
+            downloadBtn.disabled = true;
+
+            const fd = new FormData();
+            fd.append("pdf", document.getElementById("pdfInput").files[0]);
+
+            try {
+                const res = await fetch("/convert", {
+                    method: "POST",
+                    body: fd,
+                });
+
+                const data = await res.json();
+
+                if (!data.ok) throw new Error(data.error);
+
+                lastIcsText = data.ics;
+
+                initCalendar(data.events);
+
+                downloadBtn.disabled = false;
+                setStatus("Preview generated.", "ok");
+            } catch (err) {
+                setStatus(err.message || "Error", "error");
+            }
+        });
+
+        downloadBtn.addEventListener("click", () => {
+            if (lastIcsText) downloadIcs(lastIcsText);
+        });
+    </script>
 </body>
 
 </html>

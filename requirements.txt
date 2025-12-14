@@ -1,5 +1,3 @@
 flask
-gunicorn
-pytesseract
-pdf2image
-pillow
+pandas
+pymupdf

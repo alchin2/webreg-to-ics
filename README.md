@@ -1,73 +1,75 @@
-# WebReg to ICS
+## WebReg PDF → Calendar (.ics)
 
-Convert a UCSD WebReg schedule PDF into a clean, importable calendar (`.ics`) file.
+Convert a UC WebReg schedule PDF into a downloadable `.ics` calendar file with a live weekly preview.
 
-## Why This Exists
+**Features:** PDF → CSV extraction | Weekly calendar preview (FullCalendar) | Correct weekly recurrence | Stops before finals | One-click `.ics` download | Vercel-ready
 
-UCSD WebReg doesn't provide native calendar export. This tool bridges that gap by automatically extracting course data from your PDF and generating a standards-compliant `.ics` file compatible with Google Calendar, Apple Calendar, and Outlook.
+---
 
-## Features
+## Quick Start
 
-- **PDF to Calendar**: Extracts course information via OCR
-- **Weekly Lectures**: Automatically generates recurring lecture events
-- **Holiday-Aware**: Skips UCSD holidays (MLK Day, Presidents' Day, etc.)
-- **Exams Included**: Adds midterms and finals as one-off events
-- **Universal Compatibility**: Works with Google Calendar, Apple Calendar, and Outlook
-
-## Installation
-
-### System Dependencies
-
-Install these first:
 ```bash
-# macOS (Homebrew)
-brew install tesseract poppler
-
-# Ubuntu/Debian
-sudo apt-get install tesseract-ocr poppler-utils
-
-# Windows
-# Download from: https://github.com/UB-Mannheim/tesseract/wiki
-# https://blog.alivate.com.au/poppler-windows/
-```
-
-### Python Dependencies
-```bash
+git clone <your-repo-url>
+cd webreg_to_ics
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
+python -m api.index
 ```
 
-Requires Python 3.9+
+Open `http://127.0.0.1:5000`
 
-## Usage
+**CLI only?** Run `python main.py` for a quick `.ics` file without the web UI.
 
-1. Download your schedule from UCSD WebReg as a PDF
-2. Run the tool:
-```bash
-python main.py
-```
+---
 
-3. Enter your PDF filename when prompted
-4. Import the generated `schedule.ics` into your calendar app
+## How It Works
+
+1. Upload your WebReg PDF
+2. `pdf_extract.py` detects the course table and exports CSV
+3. `calendar.py` converts CSV → standards-compliant `.ics`
+4. Preview shows weekly recurring events (classes stop before finals)
+5. Download and import into Google Calendar, Outlook, Apple Calendar, etc.
+
+---
 
 ## Project Structure
+
 ```
-webreg-to-ics/
-├── main.py
+webreg_to_ics/
+├── api/index.py              # Flask backend
+├── webreg/calendar.py        # CSV → ICS logic
+├── webreg/pdf_extract.py     # PDF table extraction
+├── templates/index.html      # Frontend + calendar preview
+├── main.py                   # CLI script
 ├── requirements.txt
-├── README.md
-└── webreg_to_ics/
-    ├── pdf_to_image.py    # PDF → image conversion
-    ├── ocr.py             # OCR text extraction
-    ├── parser.py          # Text → course data parsing
-    └── calendar.py        # Data → .ics generation
+├── vercel.json
+└── README.md
 ```
 
-## Limitations
+---
 
-- OCR accuracy depends on PDF quality
-- Currently tuned for UCSD Winter 2026 schedules
-- Parser updates may be needed if WebReg format changes
+## Deployment (Vercel)
+
+```json
+{
+  "builds": [{ "src": "api/index.py", "use": "@vercel/python" }],
+  "routes": [{ "src": "/.*", "dest": "api/index.py" }]
+}
+```
+
+Import repo to Vercel and deploy.
+
+---
+
+## Notes
+
+- PDF must follow standard WebReg format
+- Preview is visualization only; `.ics` file is the source of truth
+
+---
 
 ## License
 
-MIT License
+### MIT License
+
