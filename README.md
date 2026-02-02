@@ -1,75 +1,73 @@
-## WebReg PDF → Calendar (.ics)
+Here is the Markdown content for your README file:
 
-Convert a UC WebReg schedule PDF into a downloadable `.ics` calendar file with a live weekly preview.
+# Course Schedule to ICS Converter
 
-**Features:** PDF → CSV extraction | Weekly calendar preview (FullCalendar) | Correct weekly recurrence | Stops before finals | One-click `.ics` download | Vercel-ready
+This tool extracts university course schedules from PDF files and converts them into an `.ics` (iCalendar) file. This allows you to easily import your classes, labs, discussions, midterms, and finals into calendar applications like Google Calendar, Apple Calendar, or Microsoft Outlook.
 
----
+## Features
 
-## Quick Start
-
-```bash
-git clone <your-repo-url>
-cd webreg_to_ics
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python -m api.index
-```
-
-Open `http://127.0.0.1:5000`
-
-**CLI only?** Run `python main.py` for a quick `.ics` file without the web UI.
-
----
-
-## How It Works
-
-1. Upload your WebReg PDF
-2. `pdf_extract.py` detects the course table and exports CSV
-3. `calendar.py` converts CSV → standards-compliant `.ics`
-4. Preview shows weekly recurring events (classes stop before finals)
-5. Download and import into Google Calendar, Outlook, Apple Calendar, etc.
-
----
+* **PDF Table Extraction**: Uses `PyMuPDF` to accurately crop and extract schedule tables from PDFs.
+* **Intelligent Parsing**: Automatically handles "merged rows" in the PDF (where course info is listed once for multiple time slots).
+* **Recurring Events**: Supports weekly recurrence for Lectures (LE), Labs (LA), and Discussions (DI).
+* **Exam Support**: Handles single-instance events like Finals (FI) and Midterms (MI) using specific dates parsed from the document.
+* **Holiday Exclusion**: Automatically excludes specific dates (like MLK Day or Presidents' Day) from recurring schedules using `EXDATE`.
+* **Location Tracking**: Includes building codes and room numbers in the calendar event location.
 
 ## Project Structure
 
+To run the script correctly, ensure your files are organized as follows:
+
 ```
-webreg_to_ics/
-├── api/index.py              # Flask backend
-├── webreg/calendar.py        # CSV → ICS logic
-├── webreg/pdf_extract.py     # PDF table extraction
-├── templates/index.html      # Frontend + calendar preview
-├── main.py                   # CLI script
-├── requirements.txt
-├── vercel.json
-└── README.md
-```
+.
+├── calendar_ics.py         # Main entry point
+├── requirements.txt        # Project dependencies
+└── helpers/                # Logic modules
+    ├── extract_table.py    # PDF extraction logic
+    └── util.py             # Parsing and formatting utilities
 
----
-
-## Deployment (Vercel)
-
-```json
-{
-  "builds": [{ "src": "api/index.py", "use": "@vercel/python" }],
-  "routes": [{ "src": "/.*", "dest": "api/index.py" }]
-}
 ```
 
-Import repo to Vercel and deploy.
+## Installation
 
----
+1. **Clone the repository** (or download the source files).
+2. **Install dependencies**:
+It is recommended to use a virtual environment.
+```bash
+pip install -r requirements.txt
+
+```
+
+
+
+## Configuration
+
+Before running the script, you must update the academic calendar dates in `calendar_ics.py` to match the current quarter/semester:
+
+1. Open `calendar_ics.py`.
+2. Update the `QUARTER_START` and `QUARTER_END` variables (format: `YYYYMMDD`).
+3. Update the `HOLIDAYS` set with the specific dates where classes should be cancelled.
+4. (Optional) Change `TZID` if you are in a different time zone (default is `America/Los_Angeles`).
+
+## Usage
+
+Place your schedule PDF in the project directory and run the following command:
+
+```bash
+python calendar_ics.py <your_schedule_filename>.pdf
+
+```
+
+### Output
+
+The script will generate a file named `schedule.ics` in the root directory. You can then import this file into your preferred calendar app.
+
+## Requirements
+
+* Python 3.10+ (utilizes `match` statements)
+* `pymupdf`
+* `pandas`
 
 ## Notes
-- Currently tuned to Winter 2026 
-- PDF must follow standard WebReg format
-- Preview is visualization only; `.ics` file is the source of truth
 
----
-
-## License
-
-### MIT License
-
+* **PDF Layout**: The extraction logic in `extract_table.py` uses a specific crop box (`45, 50, 612 - 45, 792 - 50`). If your PDF has different margins, you may need to adjust these coordinates.
+* **Course Codes**: The script assumes the course code is in the first column of the extracted table.
