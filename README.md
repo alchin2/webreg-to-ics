@@ -49,6 +49,7 @@ Before running the script, you must update the academic calendar dates in `calen
 4. (Optional) Change `TZID` if you are in a different time zone (default is `America/Los_Angeles`).
 
 ## Usage
+Download webreg schedule as PDF
 
 Place your schedule PDF in the project directory and run the following command:
 
@@ -69,5 +70,3 @@ The script will generate a file named `schedule.ics` in the root directory. You 
 
 ## Notes
 
-* **PDF Layout**: The extraction logic in `extract_table.py` uses a specific crop box (`45, 50, 612 - 45, 792 - 50`). If your PDF has different margins, you may need to adjust these coordinates.
-* **Course Codes**: The script assumes the course code is in the first column of the extracted table.
