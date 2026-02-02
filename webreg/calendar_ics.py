@@ -1,5 +1,7 @@
 import pandas as pd
 from datetime import datetime, timedelta, date
+import sys
+import os
 
 HOLIDAYS = {
     date(2026, 1, 19),  # MLK Day
@@ -137,3 +139,16 @@ END:VEVENT
         + "".join(events)
         + "END:VCALENDAR\n"
     )
+
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: python my_calendar.py <input_csv>")
+        sys.exit(1)
+
+    input_csv = sys.argv[1]
+    output_ics = os.path.splitext(input_csv)[0] + ".ics"
+
+    ics_content = csv_to_ics(input_csv)
+    with open(output_ics, "w") as f:
+        f.write(ics_content)
