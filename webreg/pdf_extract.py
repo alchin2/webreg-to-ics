@@ -18,3 +18,8 @@ def extract_table(pdf_path: str) -> str:
     out_path = os.path.join(tempfile.gettempdir(), "schedule.csv")
     df.to_csv(out_path, index=False)
     return out_path
+
+if __name__ == "__main__":
+    pdf_path = "webregMain.pdf"  # Replace with your PDF file path
+    csv_path = extract_table(pdf_path)
+    print(f"Extracted table saved to: {csv_path}")
