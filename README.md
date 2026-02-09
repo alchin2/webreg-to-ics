@@ -43,14 +43,16 @@ webreg-to-ics/
    ```
    pip install -r requirements.txt
    ```
+2. Print/Download your schedule.html from WebReg
 
-2. Run the script:
+
+3. Run the script:
    ```
    python scripts/calendar_ics.py <input_pdf>
    ```
    - `<input_pdf>`: Path to your course schedule PDF
 
-3. The output file `schedule.ics` will be created in the project directory.
+4. The output file `schedule.ics` will be created in the project directory.
 
 ### Frontend: View Schedule
 
