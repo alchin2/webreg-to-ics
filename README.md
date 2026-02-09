@@ -1,72 +1,75 @@
-Here is the Markdown content for your README file:
+# webreg-to-ics
 
-# Course Schedule to ICS Converter
+Generate a calendar (.ics) file from a course schedule PDF and view your schedule in a web interface.
 
-This tool extracts university course schedules from PDF files and converts them into an `.ics` (iCalendar) file. This allows you to easily import your classes, labs, discussions, midterms, and finals into calendar applications like Google Calendar, Apple Calendar, or Microsoft Outlook.
+## Overview
+This project extracts course schedule data from a PDF and converts it into an iCalendar (.ics) file. It also provides a simple frontend for viewing your schedule.
 
 ## Features
-
-* **PDF Table Extraction**: Uses `PyMuPDF` to accurately crop and extract schedule tables from PDFs.
-* **Intelligent Parsing**: Automatically handles "merged rows" in the PDF (where course info is listed once for multiple time slots).
-* **Recurring Events**: Supports weekly recurrence for Lectures (LE), Labs (LA), and Discussions (DI).
-* **Exam Support**: Handles single-instance events like Finals (FI) and Midterms (MI) using specific dates parsed from the document.
-* **Holiday Exclusion**: Automatically excludes specific dates (like MLK Day or Presidents' Day) from recurring schedules using `EXDATE`.
-* **Location Tracking**: Includes building codes and room numbers in the calendar event location.
+- Parses course schedule PDFs
+- Supports lectures, labs, discussions, finals, and midterms
+- Handles recurring events with holidays excluded
+- Outputs a standards-compliant `.ics` file
+- Static web frontend for schedule visualization
 
 ## Project Structure
 
-To run the script correctly, ensure your files are organized as follows:
-
 ```
-.
-├── calendar_ics.py         # Main entry point
-├── requirements.txt        # Project dependencies
-└── helpers/                # Logic modules
-    ├── extract_table.py    # PDF extraction logic
-    └── util.py             # Parsing and formatting utilities
-
-```
-
-## Installation
-
-1. **Clone the repository** (or download the source files).
-2. **Install dependencies**:
-It is recommended to use a virtual environment.
-```bash
-pip install -r requirements.txt
-
-```
-
-
-
-## Configuration
-
-Before running the script, you must update the academic calendar dates in `calendar_ics.py` to match the current quarter/semester:
-
-1. Open `calendar_ics.py`.
-2. Update the `QUARTER_START` and `QUARTER_END` variables (format: `YYYYMMDD`).
-3. Update the `HOLIDAYS` set with the specific dates where classes should be cancelled.
-4. (Optional) Change `TZID` if you are in a different time zone (default is `America/Los_Angeles`).
-
-## Usage
-Download webreg schedule as PDF
-
-Place your schedule PDF in the project directory and run the following command:
-
-```bash
-python calendar_ics.py <your_schedule_filename>.pdf
-
-```
-
-### Output
-
-The script will generate a file named `schedule.ics` in the root directory. You can then import this file into your preferred calendar app.
+webreg-to-ics/
+├── README.md                
+├── scripts/                 
+│   ├── calendar_ics.py      # PDF to ICS conversion
+│   ├── extract_table.py     # PDF Extraction logic
+│   ├── util.py              # Helper for parsing
+│   └── main_from_pdf.py     # Entrypoint            
+├── static/                  
+│   ├── index.html           
+│   ├── script.js            
+│   └── style.css            
+├── requirements.txt         
+└── server.py                # Backend server
 
 ## Requirements
+- Python 3.8+
+- See `requirements.txt` for dependencies
+- Modern web browser
 
-* Python 3.10+ (utilizes `match` statements)
-* `pymupdf`
-* `pandas`
+## Usage
+
+### Backend: Generate ICS File
+
+1. Install dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
+
+2. Run the script:
+   ```
+   python scripts/calendar_ics.py <input_pdf>
+   ```
+   - `<input_pdf>`: Path to your course schedule PDF
+
+3. The output file `schedule.ics` will be created in the project directory.
+
+### Frontend: View Schedule
+
+1. Open the `static/index.html` file in your web browser.
+
+   - The frontend uses `static/script.js` and `static/style.css` for interactivity and styling.
+   - If you want to serve the frontend via a local server, run:
+     ```
+     cd static
+     python -m http.server 8000
+     ```
+     Then visit [http://localhost:8000](http://localhost:8000) in your browser.
+
+2. To display your schedule, you may need to manually upload or parse the generated `schedule.ics` file in the frontend, depending on the implementation.
 
 ## Notes
+- Holidays are automatically excluded from recurring events.
+- The script uses RRULE for efficient calendar event generation.
+- The frontend is static and does not require a backend server unless you want to serve it locally.
+
+## License
+MIT License
 
