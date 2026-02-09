@@ -1,7 +1,37 @@
-const uploadBtn = document.getElementById('upload-btn');
 const uploadInput = document.getElementById('upload-input');
+const uploadBtn = document.getElementById('upload-btn');
 const previewBox = document.getElementById('preview-box');
 const downloadBtn = document.getElementById('download-btn');
+
+let generatedICS = null;
+
+async function convert(file) {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await fetch("/convert", {
+        method: "POST",
+        body: formData
+    });
+
+    generatedICS = await response.blob();
+    previewBox.textContent = "ICS file ready for download.";
+    downloadBtn.disabled = false;
+}
+
+function handleDownload() {
+    if (!generatedICS) {
+        alert("Upload first!");
+        return;
+    }
+
+    const url = window.URL.createObjectURL(generatedICS);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "calendar.ics";
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
 
 uploadBtn.addEventListener('click', () => {
     uploadInput.click();
@@ -10,24 +40,8 @@ uploadBtn.addEventListener('click', () => {
 uploadInput.addEventListener('change', (event) => {
     const file = event.target.files[0];
     if (file) {
-        const reader = new FileReader();
-        reader.onload = function (e) {
-            previewBox.textContent = e.target.result;
-            downloadBtn.disabled = false;
-        };
-        reader.readAsText(file);
+        convert(file);
     }
 });
 
-downloadBtn.addEventListener('click', () => {
-    const content = previewBox.textContent;
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'schedule.txt';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-});
+downloadBtn.addEventListener('click', handleDownload);

@@ -14,6 +14,20 @@ QUARTER_START = "20260105"
 QUARTER_END = "20260313"
 
 
+def fold_line(line):
+    # ICS spec: max 75 octets, but don't break mid-word or mid-field
+    if len(line) <= 75:
+        return line
+    folded = []
+    while len(line) > 75:
+        # Find last space before 75th char
+        split = line.rfind(' ', 0, 75)
+        if split == -1:
+            split = 75
+        folded.append(line[:split])
+        line = ' ' + line[split:].lstrip()
+    folded.append(line)
+    return '\n'.join(folded)
 
 
 def create_ics(df, output_path="schedule.ics"):
@@ -25,6 +39,7 @@ def create_ics(df, output_path="schedule.ics"):
         "VERSION:2.0",
         "PRODID:-//Course Schedule//EN",
         "CALSCALE:GREGORIAN",
+        "X-WR-TIMEZONE:America/Los_Angeles",
     ])
 
     TZID = "America/Los_Angeles"
@@ -32,7 +47,7 @@ def create_ics(df, output_path="schedule.ics"):
     last_code = ""
     last_instructor = ""
     last_title = "" 
-    
+
     for idx, row in df.iterrows():
         code = ""
         instructor = ""
@@ -68,17 +83,71 @@ def create_ics(df, output_path="schedule.ics"):
                 event_date = QUARTER_END  # fallback
 
             start_time, end_time = parse_time(time_str, event_date, event_date)
-            lines.extend([
+            event_lines = [
                 "BEGIN:VEVENT",
                 f"UID:{uid}",
                 f"DTSTAMP:{dtstamp}",
                 f"DTSTART;TZID={TZID}:{start_time}",
                 f"DTEND;TZID={TZID}:{end_time}",
-                f"SUMMARY:{code} {ctype}",
-                f"LOCATION:{location} {room}",
-            ])
+                fold_line(f"SUMMARY:{code} {ctype}"),
+                fold_line(f"LOCATION:{location} {room}"),
+                "SEQUENCE:0",
+                "STATUS:CONFIRMED",
+            ]
+            event_lines.append("END:VEVENT")
+            lines.extend(event_lines)
         # Lectures, Discussions, Labs: recurring weekly
         elif ctype in ["Lecture", "Discussion", "Lab"]:
+            # Parse days to list of weekday codes
+            day_map = {"MO": 0, "TU": 1, "WE": 2, "TH": 3, "FR": 4}
+            days_list = []
+            if "M" in days_str:
+                days_list.append("MO")
+            if "Tu" in days_str:
+                days_list.append("TU")
+            if "W" in days_str:
+                days_list.append("WE")
+            if "Th" in days_str:
+                days_list.append("TH")
+            if "F" in days_str:
+                days_list.append("FR")
+
+            quarter_start_date = datetime.strptime(QUARTER_START, "%Y%m%d").date()
+            quarter_end_date = datetime.strptime(QUARTER_END, "%Y%m%d").date()
+
+            for day_code in days_list:
+                weekday = day_map[day_code]
+                # Find first occurrence of this weekday on or after quarter_start_date
+                first_date = quarter_start_date
+                while first_date.weekday() != weekday:
+                    first_date += timedelta(days=1)
+                # RRULE: weekly until quarter_end_date
+                event_date_str = first_date.strftime("%Y%m%d")
+                start_time, end_time = parse_time(time_str, event_date_str, event_date_str)
+                event_lines = [
+                    "BEGIN:VEVENT",
+                    f"UID:{code}-{idx}-{day_code}@schedule",
+                    f"DTSTAMP:{dtstamp}",
+                    f"DTSTART;TZID={TZID}:{start_time}",
+                    f"DTEND;TZID={TZID}:{end_time}",
+                    fold_line(f"SUMMARY:{code} {ctype}"),
+                    fold_line(f"LOCATION:{location} {room}"),
+                    "SEQUENCE:0",
+                    "STATUS:CONFIRMED",
+                ]
+                if ctype == "Lecture":
+                    event_lines.append(fold_line(f"DESCRIPTION:{title} with instructor: {instructor}"))
+                # RRULE for weekly recurrence
+                event_lines.append(f"RRULE:FREQ=WEEKLY;UNTIL={quarter_end_date.strftime('%Y%m%d')}T235959Z;BYDAY={day_code}")
+                # EXDATE for holidays
+                for h in HOLIDAYS:
+                    if h >= first_date and h <= quarter_end_date and h.weekday() == weekday:
+                        exdate = h.strftime("%Y%m%d")
+                        event_lines.append(f"EXDATE;TZID={TZID}:{exdate}T000000")
+                event_lines.append("END:VEVENT")
+                lines.extend(event_lines)
+        else:
+            # Other types: single event, no RRULE
             days = parse_days(days_str)
             start_time, end_time = parse_time(time_str, QUARTER_START, QUARTER_END)
             event_lines = [
@@ -87,40 +156,20 @@ def create_ics(df, output_path="schedule.ics"):
                 f"DTSTAMP:{dtstamp}",
                 f"DTSTART;TZID={TZID}:{start_time}",
                 f"DTEND;TZID={TZID}:{end_time}",
-                f"SUMMARY:{code} {ctype}",
-                f"LOCATION:{location} {room}",
-                f"RRULE:FREQ=WEEKLY;BYDAY={days};UNTIL={QUARTER_END}T235959Z",
+                fold_line(f"SUMMARY:{code} {ctype}"),
+                fold_line(f"LOCATION:{location} {room}"),
+                "SEQUENCE:0",
+                "STATUS:CONFIRMED",
             ]
-            # Only lectures get a description
-            if ctype == "Lecture":
-                event_lines.insert(-1, f"DESCRIPTION: {title} with instructor: {instructor}")
+            event_lines.append("END:VEVENT")
             lines.extend(event_lines)
-        else:
-            # Other types: single event, no RRULE
-            days = parse_days(days_str)
-            start_time, end_time = parse_time(time_str, QUARTER_START, QUARTER_END)
-            lines.extend([
-                "BEGIN:VEVENT",
-                f"UID:{uid}",
-                f"DTSTAMP:{dtstamp}",
-                f"DTSTART;TZID={TZID}:{start_time}",
-                f"DTEND;TZID={TZID}:{end_time}",
-                f"SUMMARY:{code} {ctype}",
-                f"LOCATION:{location} {room}",
-            ])
-
-        # Exclude holidays
-        for h in HOLIDAYS:
-            exdate = h.strftime("%Y%m%d")
-            lines.append(f"EXDATE;TZID={TZID}:{exdate}T000000")
-
-        lines.append("END:VEVENT")
 
     # footer
     lines.append("END:VCALENDAR")
 
     with open(output_path, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
+
 
 def main_from_pdf(input_path, output_path="schedule.ics"):
     if not os.path.exists(input_path):
