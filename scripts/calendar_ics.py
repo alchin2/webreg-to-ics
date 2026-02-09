@@ -2,8 +2,8 @@ import pandas as pd
 from datetime import datetime, timedelta, date
 import sys
 import os
-from helpers.extract_table import extract
-from helpers.util import parse_type, parse_days, parse_time
+from scripts.extract_table import extract
+from scripts.util import parse_type, parse_days, parse_time
 
 HOLIDAYS = {
     date(2026, 1, 19),  # MLK Day
@@ -122,7 +122,20 @@ def create_ics(df, output_path="schedule.ics"):
     with open(output_path, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
 
+def main_from_pdf(input_path, output_path="schedule.ics"):
+    if not os.path.exists(input_path):
+        raise FileNotFoundError(f"Error: file not found: {input_path}")
 
+    try:
+        df = extract(input_path)
+    except Exception as e:
+        raise RuntimeError(f"Error extracting table from PDF: {e}")
+
+    if df.empty:
+        raise ValueError("Error: extracted table is empty")
+
+    create_ics(df, output_path)
+    return output_path
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
@@ -130,21 +143,9 @@ if __name__ == "__main__":
         sys.exit(1)
 
     input_path = sys.argv[1]
-
-    if not os.path.exists(input_path):
-        print(f"Error: file not found: {input_path}")
-        sys.exit(1)
-
     try:
-        df = extract(input_path)
+        main_from_pdf(input_path)
+        print("ICS file created: schedule.ics")
     except Exception as e:
-        print("Error extracting table from PDF:")
         print(e)
         sys.exit(1)
-
-    if df.empty:
-        print("Error: extracted table is empty")
-        sys.exit(1)
-
-    create_ics(df)
-    print("ICS file created: schedule.ics")
