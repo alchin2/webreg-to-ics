@@ -33,10 +33,11 @@ webreg-to-ics/
 - Python 3.8+
 - See `requirements.txt` for dependencies
 - Modern web browser
+```
 
 ## Usage
 
-### Backend: Generate ICS File
+## Backend: Generate ICS File
 
 1. Install dependencies:
    ```
@@ -67,8 +68,7 @@ webreg-to-ics/
 
 ## Notes
 - Holidays are automatically excluded from recurring events.
-- The script uses RRULE for efficient calendar event generation.
-- The frontend is static and does not require a backend server unless you want to serve it locally.
+- Currently tuned to Winter2026
 
 ## License
 MIT License
