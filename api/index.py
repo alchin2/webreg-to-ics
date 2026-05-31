@@ -38,6 +38,8 @@ def convert_pdf_to_ics(pdf_bytes: bytes) -> bytes:
 
 
 @app.post("/convert")
+@app.post("/api/index")
+@app.post("/")
 async def convert(file: UploadFile = File(...)):
     if not (file.filename or "").lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are accepted.")
