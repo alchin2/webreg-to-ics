@@ -1,10 +1,14 @@
+import sys
+import os
+
+# Ensure project root is on sys.path so 'scripts' package is importable
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import StreamingResponse
-from fastapi.staticfiles import StaticFiles
 import io
-from scripts.main_from_pdf import main_from_pdf
 import tempfile
-import os
+from scripts.main_from_pdf import main_from_pdf
 
 app = FastAPI()
 
@@ -13,16 +17,16 @@ def convert_pdf_to_ics(pdf_bytes: bytes) -> bytes:
     tmp_pdf_path = None
     tmp_ics_path = None
     try:
-        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp_pdf:
+        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp_pdf:
             tmp_pdf.write(pdf_bytes)
             tmp_pdf_path = tmp_pdf.name
 
-        with tempfile.NamedTemporaryFile(suffix='.ics', delete=False) as tmp_ics:
+        with tempfile.NamedTemporaryFile(suffix=".ics", delete=False) as tmp_ics:
             tmp_ics_path = tmp_ics.name
 
         main_from_pdf(tmp_pdf_path, tmp_ics_path)
 
-        with open(tmp_ics_path, 'rb') as f:
+        with open(tmp_ics_path, "rb") as f:
             return f.read()
     finally:
         for path in (tmp_pdf_path, tmp_ics_path):
@@ -53,7 +57,3 @@ async def convert(file: UploadFile = File(...)):
         media_type="text/calendar; charset=utf-8",
         headers={"Content-Disposition": 'attachment; filename="schedule.ics"'},
     )
-
-
-# Mount AFTER API routes — StaticFiles at "/" catches everything else
-app.mount("/", StaticFiles(directory="public", html=True), name="static")

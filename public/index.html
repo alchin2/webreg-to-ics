@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebReg to ICS</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>WebReg → ICS</h1>
+        <p class="subtitle">Convert your UCSD schedule PDF to a calendar file</p>
+    </header>
+
+    <main>
+        <div id="upload-area" class="upload-area">
+            <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+            </svg>
+            <p class="upload-text">Drag &amp; drop your WebReg PDF here</p>
+            <p class="upload-hint">or click to choose a file</p>
+            <input type="file" id="upload-input" accept=".pdf">
+        </div>
+
+        <div id="status" class="status hidden"></div>
+
+        <section id="preview-section" class="hidden">
+            <div class="preview-header">
+                <h2 id="preview-title">Your Schedule</h2>
+                <button id="download-btn" class="btn btn-success">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+                    </svg>
+                    Download .ics
+                </button>
+            </div>
+            <div id="events-container"></div>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>

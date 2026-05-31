@@ -82,7 +82,7 @@ def create_ics(df, output_path="schedule.ics"):
             except Exception:
                 event_date = QUARTER_END  # fallback
 
-            start_time, end_time = parse_time(time_str, event_date, event_date)
+            start_time, end_time = parse_time(time_str, event_date)
             event_lines = [
                 "BEGIN:VEVENT",
                 f"UID:{uid}",
@@ -123,7 +123,8 @@ def create_ics(df, output_path="schedule.ics"):
                     first_date += timedelta(days=1)
                 # RRULE: weekly until quarter_end_date
                 event_date_str = first_date.strftime("%Y%m%d")
-                start_time, end_time = parse_time(time_str, event_date_str, event_date_str)
+                start_time, end_time = parse_time(time_str, event_date_str)
+                time_suffix = start_time[8:]  # "THHMMSS" portion for EXDATE matching
                 event_lines = [
                     "BEGIN:VEVENT",
                     f"UID:{code}-{idx}-{day_code}@schedule",
@@ -139,17 +140,16 @@ def create_ics(df, output_path="schedule.ics"):
                     event_lines.append(fold_line(f"DESCRIPTION:{title} with instructor: {instructor}"))
                 # RRULE for weekly recurrence
                 event_lines.append(f"RRULE:FREQ=WEEKLY;UNTIL={quarter_end_date.strftime('%Y%m%d')}T235959Z;BYDAY={day_code}")
-                # EXDATE for holidays
+                # EXDATE for holidays — must match the event's start time, not midnight
                 for h in HOLIDAYS:
                     if h >= first_date and h <= quarter_end_date and h.weekday() == weekday:
                         exdate = h.strftime("%Y%m%d")
-                        event_lines.append(f"EXDATE;TZID={TZID}:{exdate}T000000")
+                        event_lines.append(f"EXDATE;TZID={TZID}:{exdate}{time_suffix}")
                 event_lines.append("END:VEVENT")
                 lines.extend(event_lines)
         else:
-            # Other types: single event, no RRULE
-            days = parse_days(days_str)
-            start_time, end_time = parse_time(time_str, QUARTER_START, QUARTER_END)
+            # Other types: single event anchored to quarter start
+            start_time, end_time = parse_time(time_str, QUARTER_START)
             event_lines = [
                 "BEGIN:VEVENT",
                 f"UID:{uid}",

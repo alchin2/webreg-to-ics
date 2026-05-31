@@ -1,7 +1,7 @@
 from datetime import datetime
 
-def parse_type(str):
-    match str:
+def parse_type(s):
+    match s:
         case "LE":
             return "Lecture"
         case "LA":
@@ -15,27 +15,24 @@ def parse_type(str):
         case _:
             return "Other"
 
-def parse_days(str):
+def parse_days(s):
     temp = []
-    if "M" in str:
+    if "M" in s:
         temp.append("MO")
-    if "Tu" in str:
+    if "Tu" in s:
         temp.append("TU")
-    if "W" in str:
+    if "W" in s:
         temp.append("WE")
-    if "Th" in str:
+    if "Th" in s:
         temp.append("TH")
-    if "F" in str:
+    if "F" in s:
         temp.append("FR")
-    seperator = ","
-    return seperator.join(temp)
+    return ",".join(temp)
 
-def parse_time(str, QUARTER_START, QUARTER_END):
-    str = str.replace("a", "AM")
-    str = str.replace("p", "PM")
-    start_str, end_str = str.split("-")
-    temp_start = (datetime.strptime(start_str.strip(), "%I:%M%p").time()).strftime("%H%M%S")
-    temp_end = (datetime.strptime(end_str.strip(), "%I:%M%p").time()).strftime("%H%M%S")
-    start_time = "{qs}T{time}".format(qs=QUARTER_START, time=temp_start)
-    end_time = "{qs}T{time}".format(qs=QUARTER_END, time=temp_end)
-    return start_time, end_time
+def parse_time(time_str, date_str):
+    """Parse a time range string like '10:00a-10:50a' relative to date_str (YYYYMMDD)."""
+    time_str = time_str.replace("a", "AM").replace("p", "PM")
+    start_str, end_str = time_str.split("-")
+    start_t = datetime.strptime(start_str.strip(), "%I:%M%p").strftime("%H%M%S")
+    end_t = datetime.strptime(end_str.strip(), "%I:%M%p").strftime("%H%M%S")
+    return f"{date_str}T{start_t}", f"{date_str}T{end_t}"
