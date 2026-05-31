@@ -1,18 +1,18 @@
-import pymupdf as fitz
+import pdfplumber
+import pandas as pd
 
 
 def extract(pdf_path):
-    doc = fitz.open(pdf_path)
-    page = doc[0]
-
-    page.set_cropbox((45, 50, 612 - 45, 792 - 50))
-
-    tables = page.find_tables() # type: ignore
-    if not tables.tables:
-        raise ValueError("No tables found in PDF")
-
-    df = tables.tables[0].to_pandas()
-    print(df)
-
-    return df
+    with pdfplumber.open(pdf_path) as pdf:
+        page = pdf.pages[0]
+        cropped = page.crop((45, 50, page.width - 45, page.height - 50))
+        tables = cropped.extract_tables()
+        if not tables:
+            raise ValueError("No tables found in PDF")
+        rows = tables[0]
+        headers = [c or "" for c in rows[0]]
+        data = [[cell or "" for cell in row] for row in rows[1:]]
+        df = pd.DataFrame(data, columns=headers)
+        print(df)
+        return df
 
