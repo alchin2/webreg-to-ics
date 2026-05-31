@@ -1,77 +1,91 @@
 # webreg-to-ics
 
-Generate a calendar (.ics) file from a course schedule PDF and view your schedule in a web interface.
+Convert a UCSD WebReg course schedule PDF into a calendar (.ics) file and preview your weekly schedule in the browser.
 
 ## Overview
-This project extracts course schedule data from a PDF and converts it into an iCalendar (.ics) file. It also provides a simple frontend for viewing your schedule.
+
+Upload your WebReg schedule PDF to the web interface. The backend extracts the course table, builds recurring events with UC San Diego holidays excluded, and returns a standards-compliant `.ics` file ready to import into Google Calendar, Apple Calendar, Outlook, etc.
 
 ## Features
-- Parses course schedule PDFs
+
+- Parses course schedule PDFs exported from UCSD WebReg
 - Supports lectures, labs, discussions, finals, and midterms
-- Handles recurring events with holidays excluded
-- Outputs a standards-compliant `.ics` file
-- Static web frontend for schedule visualization
+- Handles recurring weekly events with holidays excluded
+- Returns a standards-compliant `.ics` file
+- Weekly calendar preview in the browser
 
 ## Project Structure
 
 ```
 webreg-to-ics/
-├── README.md                
-├── scripts/                 
-│   ├── calendar_ics.py      # PDF to ICS conversion
-│   ├── extract_table.py     # PDF Extraction logic
-│   ├── util.py              # Helper for parsing
-│   └── main_from_pdf.py     # Entrypoint            
-├── static/                  
-│   ├── index.html           
-│   ├── script.js            
-│   └── style.css            
-├── requirements.txt         
-└── server.py                # Backend server
+├── api/
+│   └── index.py          # Vercel serverless entry point
+├── public/
+│   ├── index.html        # Frontend UI
+│   ├── script.js
+│   └── style.css
+├── scripts/
+│   ├── __init__.py
+│   ├── calendar_ics.py   # Builds .ics from parsed data
+│   ├── extract_table.py  # PDF table extraction (PyMuPDF)
+│   ├── main_from_pdf.py  # Orchestrates extract → build
+│   └── util.py           # Date/time helpers
+├── server.py             # Local dev server (FastAPI + static files)
+├── vercel.json           # Vercel rewrite rules
+└── requirements.txt
+```
 
 ## Requirements
+
 - Python 3.8+
-- See `requirements.txt` for dependencies
+- Dependencies listed in `requirements.txt`
 - Modern web browser
-```
 
 ## Usage
 
-## Backend: Generate ICS File
+### Option 1 — Local dev server
 
 1. Install dependencies:
-   ```
+   ```bash
    pip install -r requirements.txt
    ```
-2. Print/Download your schedule.html from WebReg
 
-
-3. Run the script:
+2. Start the server:
+   ```bash
+   uvicorn server:app --reload
    ```
-   python scripts/calendar_ics.py <input_pdf>
+
+3. Open [http://localhost:8000](http://localhost:8000) in your browser.
+
+4. Download your schedule from WebReg (print as PDF), upload it, and download the generated `schedule.ics`.
+
+### Option 2 — Deploy to Vercel
+
+1. Install the [Vercel CLI](https://vercel.com/docs/cli) and log in.
+
+2. Deploy:
+   ```bash
+   vercel
    ```
-   - `<input_pdf>`: Path to your course schedule PDF
 
-4. The output file `schedule.ics` will be created in the project directory.
+   The `vercel.json` rewrite routes `/convert` to the `api/index.py` serverless function. Host the `public/` directory as the frontend.
 
-### Frontend: View Schedule
+### Option 3 — Script only (no server)
 
-1. Open the `static/index.html` file in your web browser.
+Run the conversion directly from the command line:
 
-   - The frontend uses `static/script.js` and `static/style.css` for interactivity and styling.
-   - If you want to serve the frontend via a local server, run:
-     ```
-     cd static
-     python -m http.server 8000
-     ```
-     Then visit [http://localhost:8000](http://localhost:8000) in your browser.
+```bash
+pip install -r requirements.txt
+python -c "from scripts.main_from_pdf import main_from_pdf; main_from_pdf('webregMain.pdf', 'schedule.ics')"
+```
 
-2. To display your schedule, you may need to manually upload or parse the generated `schedule.ics` file in the frontend, depending on the implementation.
+The output `schedule.ics` can be imported directly into any calendar app.
 
 ## Notes
+
 - Holidays are automatically excluded from recurring events.
-- Currently tuned to Winter2026
+- The PDF must be the print/save-as-PDF output from UCSD WebReg.
 
 ## License
-MIT License
 
+MIT License
