@@ -9,6 +9,12 @@ __pycache__/
 # OS
 .DS_Store
 
+# Node
+node_modules/
+
+# R
+.Rhistory
+
 # Generated / local files
 webregMain.pdf
 test.jpg
